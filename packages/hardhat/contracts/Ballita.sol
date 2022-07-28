@@ -9,10 +9,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Ballita is ERC1155, Ownable {
 
   event SetPurpose(address sender, string purpose);
-  
+
   event SetPrice(address owner, uint newPrice);
   event SetCharity(address owner, address charity);
   event SetEpochLength(address owner, uint lengthInSeconds);
+  event AdvanceEpoch(address caller, uint newEpoch);
 
   string public purpose = "building ballita";
 
@@ -64,6 +65,15 @@ contract Ballita is ERC1155, Ownable {
     //determine winner(s)
     //set aside winnings for winners
     currentEpoch = block.timestamp + epochLength;
+    emit AdvanceEpoch(msg.sender, currentEpoch);
+  }
+
+  function mint(uint _betNumber) public payable {
+    require(msg.value >= price, "not enough funds");
+    require(block.timestamp < currentEpoch, "advance epoch to enable");
+    uint id = currentEpoch * 10000 + _betNumber;
+    uint amount = msg.value/price;
+    _mint(msg.sender, id, amount, msg.data);
   }
 
   // to support receiving ETH by default
