@@ -17,12 +17,22 @@ contract Ballita is ERC1155, Ownable {
   event AdvanceEpoch(address caller, uint newEpoch);
 
   uint public price;
-  address public charity;
+  address payable public charity;
   uint public epochLength;
   uint public currentEpoch;
   uint public topNumber;
+  uint public unclaimedPrizes;
 
-  constructor(string memory uri_, uint price_, address charity_, uint epochLength_, uint topNumber_) ERC1155(uri_) {
+  struct Winnings {
+    uint winningNumber;
+    uint numberOfWinners;
+    uint prize;
+  }
+
+  mapping (uint => mapping (uint => uint)) public bets;
+  mapping (uint => Winnings) public winnings;
+
+  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint topNumber_) ERC1155(uri_) {
     price = price_;
     charity = charity_;
     epochLength = epochLength_;
@@ -42,7 +52,7 @@ contract Ballita is ERC1155, Ownable {
     emit SetPrice(msg.sender, price);
   }
 
-  function setCharity(address _newCharity) public onlyOwner {
+  function setCharity(address payable _newCharity) public onlyOwner {
     charity = _newCharity;
     console.log(msg.sender, "set charity to ", charity);
     emit SetCharity(msg.sender, charity);
@@ -63,10 +73,20 @@ contract Ballita is ERC1155, Ownable {
 
   function advanceEpoch() public {
     require(block.timestamp > currentEpoch, "epoch not finished");
-    //some stuff here
-    //pay charity
-    //determine winner(s)
-    //set aside winnings for winners
+    uint pot = address(this).balance - unclaimedPrizes;
+    uint charityPayment = ((pot * 2) / 10) - 1;
+    pot = pot - charityPayment;
+
+    Winnings storage w = winnings[currentEpoch];
+    w.winningNumber = 5;
+    w.numberOfWinners = bets[currentEpoch][w.winningNumber];
+    if(w.numberOfWinners != 0){
+      w.prize = (pot / w.numberOfWinners) - 1;
+      unclaimedPrizes += pot;
+    }
+
+    charity.transfer(charityPayment);
+
     currentEpoch = block.timestamp + epochLength;
     emit AdvanceEpoch(msg.sender, currentEpoch);
   }
@@ -76,6 +96,7 @@ contract Ballita is ERC1155, Ownable {
     require(block.timestamp < currentEpoch, "advance epoch to enable");
     require(_betNumber <= topNumber && _betNumber > 0, "bet number out of range");
     if(_betNumber == topNumber) _betNumber = 0;
+    bets[currentEpoch][_betNumber]++;
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;
     _mint(msg.sender, id, amount, msg.data);
