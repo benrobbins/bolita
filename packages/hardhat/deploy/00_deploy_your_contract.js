@@ -22,7 +22,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   await deploy("Ballita", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    args: [ "thisismyuri", initPrice, "0x68BDeFf9aca67da30Ad7e78feACb3685A5c0863F" ],
+    args: [ "thisismyuri", initPrice, "0x68BDeFf9aca67da30Ad7e78feACb3685A5c0863F", 10 ],
     log: true,
     waitConfirmations: 5,
   });
