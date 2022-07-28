@@ -13,31 +13,27 @@ contract Ballita is ERC1155, Ownable {
   event SetPrice(address owner, uint newPrice);
   event SetCharity(address owner, address charity);
   event SetEpochLength(address owner, uint lengthInSeconds);
+  event SetTopNumber(address owner, uint topNumber);
   event AdvanceEpoch(address caller, uint newEpoch);
-
-  string public purpose = "building ballita";
 
   uint public price;
   address public charity;
   uint public epochLength;
   uint public currentEpoch;
+  uint public topNumber;
 
-  constructor(string memory uri_, uint price_, address charity_, uint epochLength_) ERC1155(uri_) {
+  constructor(string memory uri_, uint price_, address charity_, uint epochLength_, uint topNumber_) ERC1155(uri_) {
     price = price_;
     charity = charity_;
     epochLength = epochLength_;
     currentEpoch = block.timestamp + epochLength;
+    topNumber = topNumber_;
 
     emit SetPrice(msg.sender, price);
     emit SetCharity(msg.sender, charity);
     emit SetEpochLength(msg.sender, epochLength);
+    emit SetTopNumber(msg.sender, topNumber);
     // what should we do on deploy?
-  }
-
-  function setPurpose(string memory newPurpose) public {
-      purpose = newPurpose;
-      console.log(msg.sender,"set purpose to",purpose);
-      emit SetPurpose(msg.sender, purpose);
   }
 
   function setPrice(uint _newPrice) public onlyOwner {
@@ -58,6 +54,13 @@ contract Ballita is ERC1155, Ownable {
     emit SetEpochLength(msg.sender, epochLength);
   }
 
+  function setTopNumber(uint _newTopNumber) public onlyOwner {
+    require(_newTopNumber <= 10000, "10000 max");
+    topNumber = _newTopNumber;
+    console.log(msg.sender, "set top number to ", topNumber);
+    emit SetTopNumber(msg.sender, topNumber);
+  }
+
   function advanceEpoch() public {
     require(block.timestamp > currentEpoch, "epoch not finished");
     //some stuff here
@@ -71,6 +74,8 @@ contract Ballita is ERC1155, Ownable {
   function mint(uint _betNumber) public payable {
     require(msg.value >= price, "not enough funds");
     require(block.timestamp < currentEpoch, "advance epoch to enable");
+    require(_betNumber <= topNumber && _betNumber > 0, "bet number out of range");
+    if(_betNumber == topNumber) _betNumber = 0;
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;
     _mint(msg.sender, id, amount, msg.data);
