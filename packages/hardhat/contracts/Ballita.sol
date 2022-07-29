@@ -12,12 +12,14 @@ contract Ballita is ERC1155, Ownable {
 
   event SetPrice(address owner, uint newPrice);
   event SetCharity(address owner, address charity);
+  event SetCharityPercent(address owner, uint percent);
   event SetEpochLength(address owner, uint lengthInSeconds);
   event SetTopNumber(address owner, uint topNumber);
   event AdvanceEpoch(address caller, uint newEpoch);
 
   uint public price;
   address payable public charity;
+  uint public charityPercent;
   uint public epochLength;
   uint public currentEpoch;
   uint public topNumber;
@@ -32,15 +34,17 @@ contract Ballita is ERC1155, Ownable {
   mapping (uint => mapping (uint => uint)) public bets;
   mapping (uint => Winnings) public winnings;
 
-  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint topNumber_) ERC1155(uri_) {
+  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint topNumber_, uint charityPercent_) ERC1155(uri_) {
     price = price_;
     charity = charity_;
+    charityPercent_ = charityPercent;
     epochLength = epochLength_;
     currentEpoch = block.timestamp + epochLength;
     topNumber = topNumber_;
 
     emit SetPrice(msg.sender, price);
     emit SetCharity(msg.sender, charity);
+    emit SetCharityPercent(msg.sender, charityPercent);
     emit SetEpochLength(msg.sender, epochLength);
     emit SetTopNumber(msg.sender, topNumber);
     // what should we do on deploy?
@@ -71,21 +75,31 @@ contract Ballita is ERC1155, Ownable {
     emit SetTopNumber(msg.sender, topNumber);
   }
 
+  function setCharityPercent(uint _newCharityPercent) public onlyOwner {
+    require(_newCharityPercent <= 100, "100% max");
+    charityPercent = _newCharityPercent;
+    console.log(msg.sender, "set charity % to ", charityPercent);
+    emit SetCharityPercent(msg.sender, charityPercent);
+  }
+
   function advanceEpoch() public {
     require(block.timestamp > currentEpoch, "epoch not finished");
     uint pot = address(this).balance - unclaimedPrizes;
-    uint charityPayment = ((pot * 2) / 10) - 1;
-    pot = pot - charityPayment;
+    if(pot >= price) {
+      uint charityPayment = ((pot * charityPercent) / 100);
+      pot = pot - charityPayment;
 
-    Winnings storage w = winnings[currentEpoch];
-    w.winningNumber = 5;
-    w.numberOfWinners = bets[currentEpoch][w.winningNumber];
-    if(w.numberOfWinners != 0){
-      w.prize = (pot / w.numberOfWinners) - 1;
-      unclaimedPrizes += pot;
+      Winnings storage w = winnings[currentEpoch];
+      w.winningNumber = 5; //TODO: chainlink vrf here
+      w.numberOfWinners = bets[currentEpoch][w.winningNumber];
+      if(w.numberOfWinners != 0){
+        w.prize = (pot / w.numberOfWinners) - 1; //the -1 is for rounding errors
+        unclaimedPrizes += pot;
+      }
+
+      charity.transfer(charityPayment);
     }
 
-    charity.transfer(charityPayment);
 
     currentEpoch = block.timestamp + epochLength;
     emit AdvanceEpoch(msg.sender, currentEpoch);
@@ -100,6 +114,14 @@ contract Ballita is ERC1155, Ownable {
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;
     _mint(msg.sender, id, amount, msg.data);
+  }
+
+  function claim(uint _epoch, uint _qty) public {
+    uint winningTicket = (_epoch * 10000) + winnings[_epoch].winningNumber;
+    require(balanceOf(msg.sender, winningTicket) >= _qty, "dont have the tickets");
+    _burn(msg.sender, winningTicket, _qty);
+    uint claimAmount = winnings[_epoch].prize * _qty;
+    payable(msg.sender).transfer(claimAmount);
   }
 
   // to support receiving ETH by default
