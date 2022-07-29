@@ -15,7 +15,7 @@ contract Ballita is ERC1155, Ownable {
   event SetCharityPercent(address owner, uint percent);
   event SetEpochLength(address owner, uint lengthInSeconds);
   event SetTopNumber(address owner, uint topNumber);
-  event AdvanceEpoch(address caller, uint newEpoch);
+  event AdvanceEpoch(address caller, uint previousEpoch, uint winningNumber, uint newEpoch);
 
   uint public price;
   address payable public charity;
@@ -85,6 +85,7 @@ contract Ballita is ERC1155, Ownable {
   function advanceEpoch() public {
     require(block.timestamp > currentEpoch, "epoch not finished");
     uint pot = address(this).balance - unclaimedPrizes;
+    uint previousEpoch = currentEpoch;
     if(pot >= price) {
       uint charityPayment = ((pot * charityPercent) / 100);
       pot = pot - charityPayment;
@@ -100,9 +101,8 @@ contract Ballita is ERC1155, Ownable {
       charity.transfer(charityPayment);
     }
 
-
     currentEpoch = block.timestamp + epochLength;
-    emit AdvanceEpoch(msg.sender, currentEpoch);
+    emit AdvanceEpoch(msg.sender, previousEpoch, winnings[previousEpoch].winningNumber, currentEpoch);
   }
 
   function mint(uint _betNumber) public payable {

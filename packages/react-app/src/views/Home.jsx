@@ -13,7 +13,8 @@ import { ethers } from "ethers";
 function Home({ yourLocalBalance, readContracts }) {
   // you can also use hooks locally in your component of choice
   // in this case, let's keep track of 'purpose' variable from our contract
-  const purpose = useContractReader(readContracts, "Ballita", "purpose");
+  const currentEpoch = useContractReader(readContracts, "Ballita", "currentEpoch");
+  console.log("currentEpoch", currentEpoch);
 
   return (
     <div>
@@ -43,7 +44,7 @@ function Home({ yourLocalBalance, readContracts }) {
           packages/hardhat/contracts
         </span>
       </div>
-      {!purpose?<div style={{ margin: 32 }}>
+      {!currentEpoch?<div style={{ margin: 32 }}>
         <span style={{ marginRight: 8 }}>👷‍♀️</span>
         You haven't deployed your contract yet, run
         <span
@@ -59,12 +60,12 @@ function Home({ yourLocalBalance, readContracts }) {
           </span> to deploy your first contract!
       </div>:<div style={{ margin: 32 }}>
         <span style={{ marginRight: 8 }}>🤓</span>
-        The "purpose" variable from your contract is{" "}
+        The "currentEpoch" variable from your contract is{" "}
         <span
           className="highlight"
           style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
         >
-          {purpose}
+          {ethers.utils.formatUnits(currentEpoch, "wei")}
         </span>
       </div>}
 
