@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useContractReader } from "eth-hooks";
-
+import { useEventListener } from "eth-hooks/events/useEventListener";
+import { Button, Col, Menu, Row, InputNumber, Space, List, Card } from "antd";
+import { Address, Balance } from "../components";
 import { ethers } from "ethers";
 
 /**
@@ -10,92 +12,228 @@ import { ethers } from "ethers";
  * @param {*} readContracts contracts from current chain already pre-loaded using ethers contract module. More here https://docs.ethers.io/v5/api/contract/contract/
  * @returns react component
  **/
-function Home({ yourLocalBalance, readContracts }) {
+function Home({
+  yourLocalBalance,
+  readContracts,
+  tx,
+  writeContracts,
+  address,
+  mainnetProvider,
+  blockExplorer,
+  localProvider,
+  price,
+ }) {
+
   // you can also use hooks locally in your component of choice
   // in this case, let's keep track of 'purpose' variable from our contract
   const currentEpoch = useContractReader(readContracts, "Ballita", "currentEpoch");
   console.log("currentEpoch", currentEpoch);
+  const betPrice = useContractReader(readContracts, "Ballita", "price");
+  const topNumber = useContractReader(readContracts, "Ballita", "topNumber");
+  const charity = useContractReader(readContracts, "Ballita", "charity");
+  const charityPercent = useContractReader(readContracts, "Ballita", "charityPercent");
+  const dateTime = Date.now();
+  const timestamp = Math.floor(dateTime / 1000);
+
+  const advanceEvents = useEventListener(readContracts, "Ballita", "AdvanceEpoch", localProvider, 1);
+  console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
+
+  const currentEpochFormatted = currentEpoch&&currentEpoch.toNumber();
+  const topNumberFormatted = topNumber&&topNumber.toNumber();
+
+  const [buying, setBuying] = useState();
+  const [claiming, setClaiming] = useState();
+  const [betNumber, setBetNumber] = useState("1");
+
+  var countdown = currentEpochFormatted - timestamp > 0 ? currentEpochFormatted - timestamp : 0;
+  var nextDrawing = countdown <= 0 ? "Now!" : Date(currentEpochFormatted*1000);
+
+  const [yourCollectibles, setYourCollectibles] = useState([]);
+
+  useEffect(() => {
+    const updateYourCollectibles = async () => {
+      const collectibleUpdate = [];
+
+      for (let bet = 0; bet < topNumber; bet++) {
+        const tokenId = currentEpochFormatted*10000 + bet;
+        const betDisplay = bet ? bet : topNumberFormatted;
+        try {
+          console.log("GEtting token index", tokenId);
+          const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
+          const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
+          console.log("owner", address);
+          if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, qty: tokenQtyFormatted, owner: address, epoch: currentEpoch, bet: betDisplay})
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      setYourCollectibles(collectibleUpdate);
+    };
+    updateYourCollectibles();
+  }, [address, buying, currentEpoch]);
+
+  const [yourWinners, setYourWinners] = useState([]);
+
+  useEffect(() => {
+
+    const updateYourWinners = async () => {
+      const winnersUpdate = [];
+      console.log("can I win?", advanceEvents.length);
+      for(let i = 0; i < advanceEvents.length; i++){
+        try{
+          const winningsForEpoch = await readContracts.Ballita.winnings(advanceEvents[i].args.previousEpoch);
+          console.log("winnings", winningsForEpoch);
+          if(winningsForEpoch.numberOfWinners.toNumber()) {
+            const winningIDForEpoch = advanceEvents[i].args.previousEpoch.toNumber() * 10000 + advanceEvents[i].args.winningNumber.toNumber();
+            const winningsForAddress = await readContracts.Ballita.balanceOf(address, winningIDForEpoch);
+            console.log("winningsForAddress", winningsForAddress);
+            if(winningsForAddress.toNumber()) winnersUpdate.push({id: winningIDForEpoch, qty: winningsForAddress.toNumber(), number: winningsForEpoch.winningNumber.toNumber(), amount: winningsForEpoch.prize, epoch: advanceEvents[i].args.previousEpoch.toNumber()});
+          }
+        }catch (e) {
+          console.log(e);
+        }
+      }
+      setYourWinners(winnersUpdate);
+    };
+    updateYourWinners();
+  },[address, currentEpoch, advanceEvents, claiming]);
+
+  console.log("winners", yourWinners);
 
   return (
     <div>
-      <div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>📝</span>
-        This Is Your App Home. You can start editing it in{" "}
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          packages/react-app/src/views/Home.jsx
-        </span>
-      </div>
-      <div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>✏️</span>
-        Edit your smart contract {" "}
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          Ballita.sol
-        </span>{" "}in{" "}
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          packages/hardhat/contracts
-        </span>
-      </div>
-      {!currentEpoch?<div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>👷‍♀️</span>
-        You haven't deployed your contract yet, run
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          yarn chain
-        </span> and <span
-            className="highlight"
-            style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-          >
-            yarn deploy
-          </span> to deploy your first contract!
-      </div>:<div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>🤓</span>
-        The "currentEpoch" variable from your contract is{" "}
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          {ethers.utils.formatUnits(currentEpoch, "wei")}
-        </span>
-      </div>}
+      <div style={{marginTop: 32}}>
+        <h1>charity address &nbsp;
+        <Address
+          address={charity}
+          ensProvider={mainnetProvider}
+          blockExplorer={blockExplorer}
 
-      <div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>🤖</span>
-        An example prop of your balance{" "}
-        <span style={{ fontWeight: "bold", color: "green" }}>({ethers.utils.formatEther(yourLocalBalance)})</span> was
-        passed into the
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
+        />
+         &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of all bets</h1>
+      </div>
+      <div style={{marginTop: 64}}>
+        <h2> Next Drawing {nextDrawing} <br /> {countdown} </h2>
+      </div>
+      <div style={{marginTop: 16}}>
+        <Space>
+        Place your bet (  1  -{topNumberFormatted})
+          <InputNumber
+            min={1}
+            max={topNumberFormatted}
+            placeholder={"number"}
+            value={betNumber}
+            onChange={setBetNumber}
+          />
+          <Button
+            type="primary"
+            disabled={timestamp >= currentEpochFormatted}
+            loading={buying}
+            onClick={async () => {
+              setBuying(true);
+              await tx(writeContracts.Ballita.mint(betNumber, { value: betPrice }));
+              setBuying(false);
+            }}
+          >
+           buy
+         </Button>
+        </Space>
+      </div>
+      <div style={{margin: "auto", marginTop: 32}}>
+        <Button
+          type="primary"
+          disabled={timestamp < currentEpochFormatted}
+          loading={buying}
+          onClick={async () => {
+            setBuying(true);
+            await tx(writeContracts.Ballita.advanceEpoch());
+            setBuying(false);
+          }}
         >
-          Home.jsx
-        </span>{" "}
-        component from
-        <span
-          className="highlight"
-          style={{ marginLeft: 4, /* backgroundColor: "#f9f9f9", */ padding: 4, borderRadius: 4, fontWeight: "bolder" }}
-        >
-          App.jsx
-        </span>
+         pull ball
+       </Button>
       </div>
-      <div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>💭</span>
-        Check out the <Link to="/hints">"Hints"</Link> tab for more tips.
-      </div>
-      <div style={{ margin: 32 }}>
-        <span style={{ marginRight: 8 }}>🛠</span>
-        Tinker with your smart contract using the <Link to="/debug">"Debug Contract"</Link> tab.
-      </div>
+
+      {yourCollectibles.length?
+        <div style={{ width: 640, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
+          <h2>your open bets</h2>
+          <List
+            bordered
+            dataSource={yourCollectibles}
+            renderItem={item => {
+              const id = item.id;
+              console.log("owner item", item.owner);
+              return (
+                <List.Item key={id + "_" + item.owner}>
+                  <Card
+                    title={
+                      <div>
+                        <span style={{ fontSize: 16, marginRight: 8 }}>#{id} qty: {item.qty}</span>
+                      </div>
+                    }
+                  >
+                    <div style={{fontSize: 72}}>{item.bet}</div>
+                  </Card>
+
+                  <div>
+                    owner:{" "}
+                    <Address
+                      address={item.owner}
+                      ensProvider={mainnetProvider}
+                      blockExplorer={blockExplorer}
+                      fontSize={16}
+                    />
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
+        </div>
+        : ""
+      }
+      {yourWinners.length?
+        <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 150 }}>
+          <h2>your winners</h2>
+          <List
+            bordered
+            dataSource={yourWinners}
+            renderItem={item => {
+              return (
+                <List.Item key={item.id}>
+                  <Card
+                    title={
+                      <div>
+                        <span style={{ fontSize: 16, marginRight: 8 }}>#{item.id} qty: {item.qty}</span>
+                      </div>
+                    }
+                  >
+                    <div style={{fontSize: 72}}>{item.number}</div>
+                  </Card>
+                  <div>
+                    for <Balance balance={item.amount} price={price} fontSize={64} /> ea.
+                  </div>
+                  <div>
+                    <Button
+                      type="primary"
+                      loading={claiming}
+                      onClick={async () => {
+                        setClaiming(true);
+                        await tx(writeContracts.Ballita.claim(item.epoch, item.qty));
+                        setClaiming(false);
+                      }}
+                    >
+                     claim
+                   </Button>
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
+        </div>
+        : ""
+      }
+
+
     </div>
   );
 }

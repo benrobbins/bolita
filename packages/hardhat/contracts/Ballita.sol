@@ -8,13 +8,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Ballita is ERC1155, Ownable {
 
-  event SetPurpose(address sender, string purpose);
-
   event SetPrice(address owner, uint newPrice);
   event SetCharity(address owner, address charity);
   event SetCharityPercent(address owner, uint percent);
   event SetEpochLength(address owner, uint lengthInSeconds);
-  event SetTopNumber(address owner, uint topNumber);
   event AdvanceEpoch(address caller, uint previousEpoch, uint winningNumber, uint newEpoch);
 
   uint public price;
@@ -22,7 +19,7 @@ contract Ballita is ERC1155, Ownable {
   uint public charityPercent;
   uint public epochLength;
   uint public currentEpoch;
-  uint public topNumber;
+  uint public topNumber = 100;
   uint public unclaimedPrizes;
 
   struct Winnings {
@@ -34,19 +31,18 @@ contract Ballita is ERC1155, Ownable {
   mapping (uint => mapping (uint => uint)) public bets;
   mapping (uint => Winnings) public winnings;
 
-  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint topNumber_, uint charityPercent_) ERC1155(uri_) {
+  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint charityPercent_) ERC1155(uri_) {
     price = price_;
     charity = charity_;
-    charityPercent_ = charityPercent;
+    charityPercent = charityPercent_;
     epochLength = epochLength_;
     currentEpoch = block.timestamp + epochLength;
-    topNumber = topNumber_;
 
     emit SetPrice(msg.sender, price);
     emit SetCharity(msg.sender, charity);
     emit SetCharityPercent(msg.sender, charityPercent);
     emit SetEpochLength(msg.sender, epochLength);
-    emit SetTopNumber(msg.sender, topNumber);
+
     // what should we do on deploy?
   }
 
@@ -68,13 +64,6 @@ contract Ballita is ERC1155, Ownable {
     emit SetEpochLength(msg.sender, epochLength);
   }
 
-  function setTopNumber(uint _newTopNumber) public onlyOwner {
-    require(_newTopNumber <= 10000, "10000 max");
-    topNumber = _newTopNumber;
-    console.log(msg.sender, "set top number to ", topNumber);
-    emit SetTopNumber(msg.sender, topNumber);
-  }
-
   function setCharityPercent(uint _newCharityPercent) public onlyOwner {
     require(_newCharityPercent <= 100, "100% max");
     charityPercent = _newCharityPercent;
@@ -91,7 +80,7 @@ contract Ballita is ERC1155, Ownable {
       pot = pot - charityPayment;
 
       Winnings storage w = winnings[currentEpoch];
-      w.winningNumber = 5; //TODO: chainlink vrf here
+      w.winningNumber = 69; //TODO: chainlink vrf here
       w.numberOfWinners = bets[currentEpoch][w.winningNumber];
       if(w.numberOfWinners != 0){
         w.prize = (pot / w.numberOfWinners) - 1; //the -1 is for rounding errors
@@ -121,6 +110,7 @@ contract Ballita is ERC1155, Ownable {
     require(balanceOf(msg.sender, winningTicket) >= _qty, "dont have the tickets");
     _burn(msg.sender, winningTicket, _qty);
     uint claimAmount = winnings[_epoch].prize * _qty;
+    unclaimedPrizes -= claimAmount;
     payable(msg.sender).transfer(claimAmount);
   }
 
