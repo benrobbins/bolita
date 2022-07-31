@@ -4,9 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-contract Ballita is ERC1155, Ownable {
+contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
+  VRFCoordinatorV2Interface COORDINATOR;
 
   event SetPrice(address owner, uint newPrice);
   event SetCharity(address owner, address charity);
@@ -19,8 +21,38 @@ contract Ballita is ERC1155, Ownable {
   uint public charityPercent;
   uint public epochLength;
   uint public currentEpoch;
+  uint public previousEpoch;
   uint public topNumber = 100;
   uint public unclaimedPrizes;
+  uint64 private s_subscriptionId;
+  bool public anyLiveBets;
+
+  // Rinkeby coordinator. For other networks,
+  // see https://docs.chain.link/docs/vrf-contracts/#configurations
+  address vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
+
+  // The gas lane to use, which specifies the maximum gas price to bump to.
+  // For a list of available gas lanes on each network,
+  // see https://docs.chain.link/docs/vrf-contracts/#configurations
+  bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
+
+  // Depends on the number of requested values that you want sent to the
+  // fulfillRandomWords() function. Storing each word costs about 20,000 gas,
+  // so 100,000 is a safe default for this example contract. Test and adjust
+  // this limit based on the network that you select, the size of the request,
+  // and the processing of the callback request in the fulfillRandomWords()
+  // function.
+  uint32 callbackGasLimit = 100000;
+
+  // The default is 3, but you can set this higher.
+  uint16 requestConfirmations = 3;
+
+  uint32 numWords =  1;
+
+  uint256 public s_requestId;
+
+
+
 
   struct Winnings {
     uint winningNumber;
@@ -31,12 +63,15 @@ contract Ballita is ERC1155, Ownable {
   mapping (uint => mapping (uint => uint)) public bets;
   mapping (uint => Winnings) public winnings;
 
-  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint charityPercent_) ERC1155(uri_) {
+  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint charityPercent_, uint64 subscriptionId_) ERC1155(uri_) VRFConsumerBaseV2(vrfCoordinator){
     price = price_;
     charity = charity_;
     charityPercent = charityPercent_;
     epochLength = epochLength_;
     currentEpoch = block.timestamp + epochLength;
+
+    COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+    s_subscriptionId = subscriptionId_;
 
     emit SetPrice(msg.sender, price);
     emit SetCharity(msg.sender, charity);
@@ -71,23 +106,44 @@ contract Ballita is ERC1155, Ownable {
     emit SetCharityPercent(msg.sender, charityPercent);
   }
 
-  function advanceEpoch() public {
-    require(block.timestamp > currentEpoch, "epoch not finished");
+  // Assumes the subscription is funded sufficiently.
+  function _requestRandomWords() internal {
+    // Will revert if subscription is not set and funded.
+    s_requestId = COORDINATOR.requestRandomWords(
+      keyHash,
+      s_subscriptionId,
+      requestConfirmations,
+      callbackGasLimit,
+      numWords
+    );
+  }
+
+  function fulfillRandomWords(
+    uint256, /* requestId */
+    uint256[] memory randomWords
+  ) internal override {
+
+    Winnings storage w = winnings[previousEpoch];
+    w.winningNumber = randomWords[0] % topNumber;
+    w.numberOfWinners = bets[previousEpoch][w.winningNumber];
     uint pot = address(this).balance - unclaimedPrizes;
-    uint previousEpoch = currentEpoch;
-    if(pot >= price) {
+    if(w.numberOfWinners != 0){
       uint charityPayment = ((pot * charityPercent) / 100);
       pot = pot - charityPayment;
-
-      Winnings storage w = winnings[currentEpoch];
-      w.winningNumber = 69; //TODO: chainlink vrf here
-      w.numberOfWinners = bets[currentEpoch][w.winningNumber];
-      if(w.numberOfWinners != 0){
-        w.prize = (pot / w.numberOfWinners) - 1; //the -1 is for rounding errors
-        unclaimedPrizes += pot;
-      }
-
+      w.prize = (pot / w.numberOfWinners) - 1; //the -1 is for rounding errors
+      unclaimedPrizes += pot;
+      //charity only gets paid if there is a winner
       charity.transfer(charityPayment);
+    }
+  }
+
+  function advanceEpoch() public {
+    require(block.timestamp > currentEpoch, "epoch not finished");
+    
+    previousEpoch = currentEpoch;
+    if(anyLiveBets) {
+      _requestRandomWords();
+      anyLiveBets = false;
     }
 
     currentEpoch = block.timestamp + epochLength;
@@ -103,6 +159,7 @@ contract Ballita is ERC1155, Ownable {
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;
     _mint(msg.sender, id, amount, msg.data);
+    anyLiveBets = true;
   }
 
   function claim(uint _epoch, uint _qty) public {

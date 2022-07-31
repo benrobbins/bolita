@@ -110,10 +110,10 @@ function Home({
           blockExplorer={blockExplorer}
 
         />
-         &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of all bets</h1>
+         &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of winnings</h1>
       </div>
       <div style={{marginTop: 64}}>
-        <h2> Next Drawing {nextDrawing} <br /> {countdown} </h2>
+        <h2> Next Drawing {nextDrawing} <br /> (in {countdown} seconds) </h2>
       </div>
       <div style={{marginTop: 16}}>
         <Space>
