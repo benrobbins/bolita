@@ -14,7 +14,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   event SetCharity(address owner, address charity);
   event SetCharityPercent(address owner, uint percent);
   event SetEpochLength(address owner, uint lengthInSeconds);
-  event AdvanceEpoch(address caller, uint previousEpoch, uint winningNumber, uint newEpoch);
+  event AdvanceEpoch(address caller, uint previousEpoch, uint newEpoch);
 
   uint public price;
   address payable public charity;
@@ -22,7 +22,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   uint public epochLength;
   uint public currentEpoch;
   uint public previousEpoch;
-  uint public topNumber = 100;
+  uint public topNumber = 10;
   uint public unclaimedPrizes;
   uint64 private s_subscriptionId;
   bool public anyLiveBets;
@@ -42,7 +42,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   // this limit based on the network that you select, the size of the request,
   // and the processing of the callback request in the fulfillRandomWords()
   // function.
-  uint32 callbackGasLimit = 100000;
+  uint32 callbackGasLimit = 500000;
 
   // The default is 3, but you can set this higher.
   uint16 requestConfirmations = 3;
@@ -124,7 +124,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   ) internal override {
 
     Winnings storage w = winnings[previousEpoch];
-    w.winningNumber = randomWords[0] % topNumber;
+    w.winningNumber = randomWords[0] % topNumber +1;
     w.numberOfWinners = bets[previousEpoch][w.winningNumber];
     uint pot = address(this).balance - unclaimedPrizes;
     if(w.numberOfWinners != 0){
@@ -139,22 +139,29 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
 
   function advanceEpoch() public {
     require(block.timestamp > currentEpoch, "epoch not finished");
-    
-    previousEpoch = currentEpoch;
+    require(winnings[previousEpoch].winningNumber != 0 || previousEpoch == 0, "waiting for oracle");
     if(anyLiveBets) {
       _requestRandomWords();
+      previousEpoch = currentEpoch;
       anyLiveBets = false;
     }
 
     currentEpoch = block.timestamp + epochLength;
-    emit AdvanceEpoch(msg.sender, previousEpoch, winnings[previousEpoch].winningNumber, currentEpoch);
+    emit AdvanceEpoch(msg.sender, previousEpoch, currentEpoch);
   }
 
+  //having difficulty with "stuck" oracle requests - hopfully this is not needed in production version
+  /*
+  function reroll() public onlyOwner {
+    require(winnings[previousEpoch].winningNumber == 0, "no cheating");
+    _requestRandomWords();
+  }
+  */
+  
   function mint(uint _betNumber) public payable {
     require(msg.value >= price, "not enough funds");
     require(block.timestamp < currentEpoch, "advance epoch to enable");
     require(_betNumber <= topNumber && _betNumber > 0, "bet number out of range");
-    if(_betNumber == topNumber) _betNumber = 0;
     bets[currentEpoch][_betNumber]++;
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;

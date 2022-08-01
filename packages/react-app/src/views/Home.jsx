@@ -28,6 +28,8 @@ function Home({
   // in this case, let's keep track of 'purpose' variable from our contract
   const currentEpoch = useContractReader(readContracts, "Ballita", "currentEpoch");
   console.log("currentEpoch", currentEpoch);
+  const previousEpoch = useContractReader(readContracts, "Ballita", "previousEpoch");
+
   const betPrice = useContractReader(readContracts, "Ballita", "price");
   const topNumber = useContractReader(readContracts, "Ballita", "topNumber");
   const charity = useContractReader(readContracts, "Ballita", "charity");
@@ -55,8 +57,8 @@ function Home({
       const collectibleUpdate = [];
 
       for (let bet = 0; bet < topNumber; bet++) {
-        const tokenId = currentEpochFormatted*10000 + bet;
-        const betDisplay = bet ? bet : topNumberFormatted;
+        const tokenId = currentEpochFormatted*10000 + bet +1;
+        const betDisplay = bet + 1;
         try {
           console.log("GEtting token index", tokenId);
           const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
@@ -78,16 +80,17 @@ function Home({
 
     const updateYourWinners = async () => {
       const winnersUpdate = [];
-      console.log("can I win?", advanceEvents.length);
+      let prevEpoch = 69;
       for(let i = 0; i < advanceEvents.length; i++){
         try{
-          const winningsForEpoch = await readContracts.Ballita.winnings(advanceEvents[i].args.previousEpoch);
-          console.log("winnings", winningsForEpoch);
-          if(winningsForEpoch.numberOfWinners.toNumber()) {
-            const winningIDForEpoch = advanceEvents[i].args.previousEpoch.toNumber() * 10000 + advanceEvents[i].args.winningNumber.toNumber();
-            const winningsForAddress = await readContracts.Ballita.balanceOf(address, winningIDForEpoch);
-            console.log("winningsForAddress", winningsForAddress);
-            if(winningsForAddress.toNumber()) winnersUpdate.push({id: winningIDForEpoch, qty: winningsForAddress.toNumber(), number: winningsForEpoch.winningNumber.toNumber(), amount: winningsForEpoch.prize, epoch: advanceEvents[i].args.previousEpoch.toNumber()});
+          if(advanceEvents[i].args.previousEpoch.toNumber() != prevEpoch){
+            prevEpoch = advanceEvents[i].args.previousEpoch.toNumber();
+            const winningsForEpoch = await readContracts.Ballita.winnings(advanceEvents[i].args.previousEpoch);
+            if(winningsForEpoch.numberOfWinners.toNumber()) {
+              const winningIDForEpoch = prevEpoch * 10000 + winningsForEpoch.winningNumber.toNumber();
+              const winningsForAddress = await readContracts.Ballita.balanceOf(address, winningIDForEpoch);
+              if(winningsForAddress.toNumber()) winnersUpdate.push({id: winningIDForEpoch, qty: winningsForAddress.toNumber(), number: winningsForEpoch.winningNumber.toNumber(), amount: winningsForEpoch.prize, epoch: advanceEvents[i].args.previousEpoch.toNumber()});
+            }
           }
         }catch (e) {
           console.log(e);
@@ -112,7 +115,14 @@ function Home({
         />
          &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of winnings</h1>
       </div>
-      <div style={{marginTop: 64}}>
+      <div style={{marginTop: 24}}>
+        <h2> Winning number from last round {async () => {
+          const lastWinner = await readContracts.Ballita.winnings(previousEpoch)
+          const lastWinningNumber = lastWinner&&lastWinner.winningNumber;
+          return lastWinningNumber;
+        }} </h2>
+      </div>
+      <div style={{marginTop: 16}}>
         <h2> Next Drawing {nextDrawing} <br /> (in {countdown} seconds) </h2>
       </div>
       <div style={{marginTop: 16}}>
