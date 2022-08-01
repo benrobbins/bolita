@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useContractReader } from "eth-hooks";
 import { useEventListener } from "eth-hooks/events/useEventListener";
-import { Button, Col, Menu, Row, InputNumber, Space, List, Card } from "antd";
+import { Button, Col, Menu, Row, InputNumber, Space, List, Card, Spin } from "antd";
 import { Address, Balance } from "../components";
 import { ethers } from "ethers";
 
@@ -34,6 +34,7 @@ function Home({
   const topNumber = useContractReader(readContracts, "Ballita", "topNumber");
   const charity = useContractReader(readContracts, "Ballita", "charity");
   const charityPercent = useContractReader(readContracts, "Ballita", "charityPercent");
+  const lastWinningNumber = useContractReader(readContracts, "Ballita", "lastWinningNumber");
   const dateTime = Date.now();
   const timestamp = Math.floor(dateTime / 1000);
 
@@ -42,13 +43,16 @@ function Home({
 
   const currentEpochFormatted = currentEpoch&&currentEpoch.toNumber();
   const topNumberFormatted = topNumber&&topNumber.toNumber();
+  const lastWinningNumberFormatted = lastWinningNumber&&lastWinningNumber.toNumber();
 
   const [buying, setBuying] = useState();
   const [claiming, setClaiming] = useState();
   const [betNumber, setBetNumber] = useState("1");
 
+  const nextDrawingTime = new Date(currentEpochFormatted*1000);
+
   var countdown = currentEpochFormatted - timestamp > 0 ? currentEpochFormatted - timestamp : 0;
-  var nextDrawing = countdown <= 0 ? "Now!" : Date(currentEpochFormatted*1000);
+  var nextDrawing = countdown <= 0 ? "Now!" : nextDrawingTime;
 
   const [yourCollectibles, setYourCollectibles] = useState([]);
 
@@ -99,7 +103,7 @@ function Home({
       setYourWinners(winnersUpdate);
     };
     updateYourWinners();
-  },[address, currentEpoch, advanceEvents, claiming]);
+  },[address, currentEpoch, lastWinningNumber, claiming]);
 
   console.log("winners", yourWinners);
 
@@ -116,14 +120,10 @@ function Home({
          &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of winnings</h1>
       </div>
       <div style={{marginTop: 24}}>
-        <h2> Winning number from last round {async () => {
-          const lastWinner = await readContracts.Ballita.winnings(previousEpoch)
-          const lastWinningNumber = lastWinner&&lastWinner.winningNumber;
-          return lastWinningNumber;
-        }} </h2>
+        <h2> Winning number from last round: &nbsp; {lastWinningNumberFormatted ? lastWinningNumberFormatted : <Spin />} </h2>
       </div>
       <div style={{marginTop: 16}}>
-        <h2> Next Drawing {nextDrawing} <br /> (in {countdown} seconds) </h2>
+        <h2> Next Drawing {nextDrawingTime.toString()} <br /> (in {countdown} seconds) </h2>
       </div>
       <div style={{marginTop: 16}}>
         <Space>

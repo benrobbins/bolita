@@ -26,6 +26,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   uint public unclaimedPrizes;
   uint64 private s_subscriptionId;
   bool public anyLiveBets;
+  uint public lastWinningNumber;
 
   // Rinkeby coordinator. For other networks,
   // see https://docs.chain.link/docs/vrf-contracts/#configurations
@@ -122,9 +123,9 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     uint256, /* requestId */
     uint256[] memory randomWords
   ) internal override {
-
+    lastWinningNumber = randomWords[0] % topNumber +1;
     Winnings storage w = winnings[previousEpoch];
-    w.winningNumber = randomWords[0] % topNumber +1;
+    w.winningNumber = lastWinningNumber;
     w.numberOfWinners = bets[previousEpoch][w.winningNumber];
     uint pot = address(this).balance - unclaimedPrizes;
     if(w.numberOfWinners != 0){
@@ -144,6 +145,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
       _requestRandomWords();
       previousEpoch = currentEpoch;
       anyLiveBets = false;
+      lastWinningNumber = 0;
     }
 
     currentEpoch = block.timestamp + epochLength;
@@ -157,7 +159,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     _requestRandomWords();
   }
   */
-  
+
   function mint(uint _betNumber) public payable {
     require(msg.value >= price, "not enough funds");
     require(block.timestamp < currentEpoch, "advance epoch to enable");
