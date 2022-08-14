@@ -6,6 +6,11 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import 'base64-sol/base64.sol';
+
+import './HexStrings.sol';
+import './ToColor.sol';
 
 contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   VRFCoordinatorV2Interface COORDINATOR;
