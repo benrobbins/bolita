@@ -76,7 +76,7 @@ function Home({
       setYourCollectibles(collectibleUpdate);
     };
     updateYourCollectibles();
-  }, [address, buying, currentEpoch]);
+  }, [address, buying]);
 
   const [yourWinners, setYourWinners] = useState([]);
 
@@ -103,7 +103,7 @@ function Home({
       setYourWinners(winnersUpdate);
     };
     updateYourWinners();
-  },[address, currentEpoch, lastWinningNumber, claiming]);
+  },[address, lastWinningNumber, claiming]);
 
   console.log("winners", yourWinners);
 
