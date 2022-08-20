@@ -187,7 +187,8 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
 
   function tokenURI(uint256 id) public view returns (string memory) {
       uint epochFromId = id / 10000;
-      uint numberFromId = id - epochFromId;
+      uint numberFromId = id - (epochFromId * 10000);
+      console.log("token info", id, epochFromId, numberFromId);
       require(bets[epochFromId][numberFromId] > 0, "not exist");
       string memory name = string(abi.encodePacked('Ball #',id.toString()));
       string memory description = string(abi.encodePacked('This Ball is the color #',color[id].toColor(),' with a chubbiness of ',uint2str(chubbiness[id]),'!!!'));
@@ -249,7 +250,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
           '" ry="51.80065" stroke="#000"/>',
           '<text font-size="30" font-weight="bold" x="180" y="240" fill="red" stroke="#000" stroke-width="1" font-family="sans-serif">',
           chubbiness[id].toString(),
-          '</text>'
+          '</text>',
         '</g>',
         '<g id="eye2">',
           '<ellipse stroke-width="3" ry="29.5" rx="29.5" id="svg_2" cy="168.5" cx="209.5" stroke="#000" fill="#fff"/>',

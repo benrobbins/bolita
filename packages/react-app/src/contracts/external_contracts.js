@@ -1393,6 +1393,25 @@ const BallitaABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "renderTokenById",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
@@ -1575,6 +1594,25 @@ const BallitaABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "topNumber",
     "outputs": [
@@ -1692,7 +1730,7 @@ module.exports = {
   4: { //rinkeby
     contracts: {
       Ballita: {
-        address: "0xBa8C3addC1D3359137E4B90379fDC0caA371AD52", // deployed by 0xWildhare 31/07/2022
+        address: "0x0d71fF1C4c78d860F8f25C02b7D6e2f342799969", // deployed by 0xWildhare 31/07/2022
         abi: BallitaABI,
       },
     },

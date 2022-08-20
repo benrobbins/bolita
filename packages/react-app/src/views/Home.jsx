@@ -60,15 +60,25 @@ function Home({
     const updateYourCollectibles = async () => {
       const collectibleUpdate = [];
 
-      for (let bet = 0; bet < topNumber; bet++) {
-        const tokenId = currentEpochFormatted*10000 + bet +1;
-        const betDisplay = bet + 1;
+      for (let bet = 1; bet <= topNumber; bet++) {
+        const tokenId = currentEpochFormatted*10000 + bet;
+
         try {
           console.log("GEtting token index", tokenId);
           const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
           const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
-          console.log("owner", address);
-          if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, qty: tokenQtyFormatted, owner: address, epoch: currentEpoch, bet: betDisplay})
+          const tokenURI = await readContracts.YourCollectible.tokenURI(tokenId);
+          console.log("tokenUri", tokenURI);
+          const jsonManifestString = atob(tokenURI.substring(29))
+          console.log("jsonManifestString", jsonManifestString);
+          try {
+            const jsonManifest = JSON.parse(jsonManifestString);
+            console.log("jsonManifest", jsonManifest);
+            if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, uri: tokenURI, qty: tokenQtyFormatted, epoch: currentEpoch, bet: bet, owner: address, ...jsonManifest })
+          } catch (e) {
+            console.log(e);
+          }
+
         } catch (e) {
           console.log(e);
         }
@@ -78,6 +88,7 @@ function Home({
     updateYourCollectibles();
   }, [address, buying]);
 
+  console.log("yourCollectibles", yourCollectibles);
   const [yourWinners, setYourWinners] = useState([]);
 
   useEffect(() => {
