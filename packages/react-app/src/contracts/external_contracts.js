@@ -1173,6 +1173,19 @@ const BallitaABI = [
   },
   {
     "inputs": [],
+    "name": "callbackGasLimit",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "charity",
     "outputs": [
       {
@@ -1349,6 +1362,30 @@ const BallitaABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "parseId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "previousEpoch",
     "outputs": [
@@ -1518,6 +1555,19 @@ const BallitaABI = [
       }
     ],
     "name": "setApprovalForAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "_newLimit",
+        "type": "uint32"
+      }
+    ],
+    "name": "setCallbackGasLimit",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1730,7 +1780,7 @@ module.exports = {
   4: { //rinkeby
     contracts: {
       Ballita: {
-        address: "0x0d71fF1C4c78d860F8f25C02b7D6e2f342799969", // deployed by 0xWildhare 31/07/2022
+        address: "0xEc98464D457237297c5573A20D831b33648edF1F", // deployed by 0xWildhare 21/08/2022
         abi: BallitaABI,
       },
     },

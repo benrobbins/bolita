@@ -26,7 +26,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "localhost";
+const defaultNetwork = "rinkeby";
 
 const mainnetGwei = 21;
 
@@ -269,7 +269,7 @@ module.exports = {
             enabled: true,
             runs: 200,
           },
-          viaIR: true,
+          //viaIR: true,
         },
       },
       {

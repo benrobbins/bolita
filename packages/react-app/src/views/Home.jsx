@@ -39,13 +39,14 @@ function Home({
   const timestamp = Math.floor(dateTime / 1000);
 
   const advanceEvents = useEventListener(readContracts, "Ballita", "AdvanceEpoch", localProvider, 1);
-  console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
+  //console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
 
   const currentEpochFormatted = currentEpoch&&currentEpoch.toNumber();
   const topNumberFormatted = topNumber&&topNumber.toNumber();
   const lastWinningNumberFormatted = lastWinningNumber&&lastWinningNumber.toNumber();
 
   const [buying, setBuying] = useState();
+  const [pulling, setPulling] = useState();
   const [claiming, setClaiming] = useState();
   const [betNumber, setBetNumber] = useState("1");
 
@@ -64,19 +65,18 @@ function Home({
         const tokenId = currentEpochFormatted*10000 + bet;
 
         try {
-          console.log("GEtting token index", tokenId);
           const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
           const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
-          const tokenURI = await readContracts.YourCollectible.tokenURI(tokenId);
-          console.log("tokenUri", tokenURI);
-          const jsonManifestString = atob(tokenURI.substring(29))
-          console.log("jsonManifestString", jsonManifestString);
-          try {
-            const jsonManifest = JSON.parse(jsonManifestString);
-            console.log("jsonManifest", jsonManifest);
-            if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, uri: tokenURI, qty: tokenQtyFormatted, epoch: currentEpoch, bet: bet, owner: address, ...jsonManifest })
-          } catch (e) {
-            console.log(e);
+          console.log("GEtting token index", tokenId, tokenQtyFormatted);
+          if(tokenQtyFormatted) {
+            const tokenURI = await readContracts.Ballita.tokenURI(tokenId);
+            const jsonManifestString = atob(tokenURI.substring(29))
+            try {
+              const jsonManifest = JSON.parse(jsonManifestString);
+              if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, uri: tokenURI, qty: tokenQtyFormatted, epoch: currentEpoch, bet: bet, owner: address, ...jsonManifest })
+            } catch (e) {
+              console.log(e);
+            }
           }
 
         } catch (e) {
@@ -86,7 +86,7 @@ function Home({
       setYourCollectibles(collectibleUpdate);
     };
     updateYourCollectibles();
-  }, [address, buying]);
+  }, [address, buying, lastWinningNumber]);
 
   console.log("yourCollectibles", yourCollectibles);
   const [yourWinners, setYourWinners] = useState([]);
@@ -97,14 +97,27 @@ function Home({
       const winnersUpdate = [];
       let prevEpoch = 69;
       for(let i = 0; i < advanceEvents.length; i++){
+        console.log("advanceEvents", advanceEvents);
         try{
           if(advanceEvents[i].args.previousEpoch.toNumber() != prevEpoch){
             prevEpoch = advanceEvents[i].args.previousEpoch.toNumber();
+            console.log("prevEpoch", prevEpoch);
             const winningsForEpoch = await readContracts.Ballita.winnings(advanceEvents[i].args.previousEpoch);
-            if(winningsForEpoch.numberOfWinners.toNumber()) {
+            console.log("prevepoch1 winnings", winningsForEpoch)
+            if(winningsForEpoch.winningNumber.toNumber()) {
+              console.log("prevepoch2 winnings", winningsForEpoch.winningNumber.toNumber())
               const winningIDForEpoch = prevEpoch * 10000 + winningsForEpoch.winningNumber.toNumber();
               const winningsForAddress = await readContracts.Ballita.balanceOf(address, winningIDForEpoch);
-              if(winningsForAddress.toNumber()) winnersUpdate.push({id: winningIDForEpoch, qty: winningsForAddress.toNumber(), number: winningsForEpoch.winningNumber.toNumber(), amount: winningsForEpoch.prize, epoch: advanceEvents[i].args.previousEpoch.toNumber()});
+              if(winningsForAddress.toNumber()) {
+                const tokenURI = await readContracts.Ballita.tokenURI(winningIDForEpoch);
+                const jsonManifestString = atob(tokenURI.substring(29))
+                try {
+                  const jsonManifest = JSON.parse(jsonManifestString);
+                  winnersUpdate.push({id: winningIDForEpoch, uri: tokenURI, qty: winningsForAddress.toNumber(), epoch: prevEpoch, number: winningsForEpoch.winningNumber.toNumber(), amount: winningsForEpoch.prize, owner: address, ...jsonManifest })
+                } catch (e) {
+                  console.log(e);
+                }
+              }
             }
           }
         }catch (e) {
@@ -149,7 +162,7 @@ function Home({
           <Button
             type="primary"
             disabled={timestamp >= currentEpochFormatted}
-            loading={buying}
+
             onClick={async () => {
               setBuying(true);
               await tx(writeContracts.Ballita.mint(betNumber, { value: betPrice }));
@@ -164,11 +177,11 @@ function Home({
         <Button
           type="primary"
           disabled={timestamp < currentEpochFormatted}
-          loading={buying}
+          loading={pulling}
           onClick={async () => {
-            setBuying(true);
+            setPulling(true);
             await tx(writeContracts.Ballita.advanceEpoch());
-            setBuying(false);
+            setPulling(false);
           }}
         >
          pull ball
@@ -176,7 +189,7 @@ function Home({
       </div>
 
       {yourCollectibles.length?
-        <div style={{ width: 640, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
+        <div style={{ width: 620, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
           <h2>your open bets</h2>
           <List
             bordered
@@ -184,6 +197,7 @@ function Home({
             renderItem={item => {
               const id = item.id;
               console.log("owner item", item.owner);
+              console.log("IMAGE",item.image)
               return (
                 <List.Item key={id + "_" + item.owner}>
                   <Card
@@ -193,7 +207,11 @@ function Home({
                       </div>
                     }
                   >
-                    <div style={{fontSize: 72}}>{item.bet}</div>
+                    <a href={"https://opensea.io/assets/"+(readContracts && readContracts.YourCollectible && readContracts.YourCollectible.address)+"/"+item.id} target="_blank">
+                    <img src={item.image} />
+                    </a>
+                    <div>{item.description}</div>
+
                   </Card>
 
                   <div>
@@ -213,7 +231,7 @@ function Home({
         : ""
       }
       {yourWinners.length?
-        <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 150 }}>
+        <div style={{ width: 620, margin: "auto", marginTop: 32, paddingBottom: 150 }}>
           <h2>your winners</h2>
           <List
             bordered
@@ -228,12 +246,15 @@ function Home({
                       </div>
                     }
                   >
-                    <div style={{fontSize: 72}}>{item.number}</div>
+                    <a href={"https://opensea.io/assets/"+(readContracts && readContracts.YourCollectible && readContracts.YourCollectible.address)+"/"+item.id} target="_blank">
+                    <img src={item.image} />
+                    </a>
+                    <div>{item.description}</div>
                   </Card>
                   <div>
                     for <Balance balance={item.amount} price={price} fontSize={64} /> ea.
-                  </div>
-                  <div>
+                    <br />
+
                     <Button
                       type="primary"
                       loading={claiming}
