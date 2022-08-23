@@ -22,7 +22,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   await deploy("Ballita", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    args: [ "thisismyuri", initPrice, "0x68BDeFf9aca67da30Ad7e78feACb3685A5c0863F", 240, 20, 18235 ],
+    args: [ "", initPrice, "0x68BDeFf9aca67da30Ad7e78feACb3685A5c0863F", 240, 20, 18235, "Ballita Balls on Rinkby" ],
     log: true,
     waitConfirmations: 5,
   });
@@ -30,7 +30,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   // Getting a previously deployed contract
   const Ballita = await ethers.getContract("Ballita", deployer);
 
-  await Ballita.transferOwnership("0x521B2cE927FD6d0D473789Bd3c70B296BBce613e");
+  await Ballita.transferOwnership("0xa53A6fE2d8Ad977aD926C485343Ba39f32D3A3F6");
 
   /*  await YourContract.setPurpose("Hello");
 

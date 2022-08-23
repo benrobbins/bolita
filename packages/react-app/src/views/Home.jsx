@@ -35,6 +35,7 @@ function Home({
   const charity = useContractReader(readContracts, "Ballita", "charity");
   const charityPercent = useContractReader(readContracts, "Ballita", "charityPercent");
   const lastWinningNumber = useContractReader(readContracts, "Ballita", "lastWinningNumber");
+  const waitingForOracle = useContractReader(readContracts, "Ballita", "waitingForOracle") //untested
   const dateTime = Date.now();
   const timestamp = Math.floor(dateTime / 1000);
 
@@ -69,7 +70,7 @@ function Home({
           const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
           console.log("GEtting token index", tokenId, tokenQtyFormatted);
           if(tokenQtyFormatted) {
-            const tokenURI = await readContracts.Ballita.tokenURI(tokenId);
+            const tokenURI = await readContracts.Ballita.uri(tokenId);
             const jsonManifestString = atob(tokenURI.substring(29))
             try {
               const jsonManifest = JSON.parse(jsonManifestString);
@@ -109,7 +110,7 @@ function Home({
               const winningIDForEpoch = prevEpoch * 10000 + winningsForEpoch.winningNumber.toNumber();
               const winningsForAddress = await readContracts.Ballita.balanceOf(address, winningIDForEpoch);
               if(winningsForAddress.toNumber()) {
-                const tokenURI = await readContracts.Ballita.tokenURI(winningIDForEpoch);
+                const tokenURI = await readContracts.Ballita.uri(winningIDForEpoch);
                 const jsonManifestString = atob(tokenURI.substring(29))
                 try {
                   const jsonManifest = JSON.parse(jsonManifestString);
@@ -162,7 +163,7 @@ function Home({
           <Button
             type="primary"
             disabled={timestamp >= currentEpochFormatted}
-
+            loading={waitingForOracle}
             onClick={async () => {
               setBuying(true);
               await tx(writeContracts.Ballita.mint(betNumber, { value: betPrice }));

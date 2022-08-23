@@ -1780,7 +1780,7 @@ module.exports = {
   4: { //rinkeby
     contracts: {
       Ballita: {
-        address: "0xEc98464D457237297c5573A20D831b33648edF1F", // deployed by 0xWildhare 21/08/2022
+        address: "0xf3615D2e84585cf20757010E2a1cD99ae4B5E3cd", // deployed by 0xWildhare 23/08/2022
         abi: BallitaABI,
       },
     },

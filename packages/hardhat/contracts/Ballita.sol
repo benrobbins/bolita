@@ -35,6 +35,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   uint64 private s_subscriptionId;
   bool public anyLiveBets;
   bool public waitingForOracle;
+  string public name;
 
   // Rinkeby coordinator. For other networks,
   // see https://docs.chain.link/docs/vrf-contracts/#configurations
@@ -72,12 +73,13 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   mapping (uint256 => bytes3) public color;
   mapping (uint256 => uint256) public chubbiness;
 
-  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint charityPercent_, uint64 subscriptionId_) ERC1155(uri_) VRFConsumerBaseV2(vrfCoordinator){
+  constructor(string memory uri_, uint price_, address payable charity_, uint epochLength_, uint charityPercent_, uint64 subscriptionId_, string memory _name) ERC1155(uri_) VRFConsumerBaseV2(vrfCoordinator){
     price = price_;
     charity = charity_;
     charityPercent = charityPercent_;
     epochLength = epochLength_;
     currentEpoch = block.timestamp + epochLength;
+    name = _name;
 
     COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
     s_subscriptionId = subscriptionId_;
@@ -178,6 +180,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     require(msg.value >= price, "not enough funds");
     require(block.timestamp < currentEpoch, "advance epoch to enable");
     require(_betNumber <= topNumber && _betNumber > 0, "bet number out of range");
+    require(!waitingForOracle);
     bets[currentEpoch][_betNumber]++;
     uint id = currentEpoch * 10000 + _betNumber;
     uint amount = msg.value/price;
@@ -197,11 +200,11 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     return (epochFromId, numberFromId);
   }
 
-  function tokenURI(uint256 id) public view returns (string memory) {
+  function uri(uint256 id) public view override returns (string memory) {
       (uint epochFromId, uint numberFromId) = parseId(id);
       console.log("token info", id, epochFromId, numberFromId);
       require(bets[epochFromId][numberFromId] > 0, "not exist");
-      string memory name = string(abi.encodePacked('Ball #',id.toString()));
+      string memory ballName = string(abi.encodePacked('Ball #',id.toString()));
       string memory description = string(abi.encodePacked('This Ball is the color #',color[id].toColor(),' with a chubbiness of ',uint2str(chubbiness[id]),'!!!'));
       string memory image = Base64.encode(bytes(generateSVGofTokenById(id)));
 
@@ -213,11 +216,10 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
                     bytes(
                           abi.encodePacked(
                               '{"name":"',
-                              name,
+                              ballName,
                               '", "description":"',
                               description,
-                              '", "external_url":"https://burnyboys.com/token/',
-                              id.toString(),
+                              '", "external_url":"https://ballitav2.0xwildhare.com',
                               '", "attributes": [{"trait_type": "color", "value": "#',
                               color[id].toColor(),
                               '"},{"trait_type": "chubbiness", "value": ',
