@@ -270,12 +270,35 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     string memory dotColor = "red";
     if(winnings[epochFromId].winningNumber == numberFromId) dotColor = "green";
     string memory render = string(abi.encodePacked(
+      '<g id="ball">',
+      ' <rect width="400" height="400" id="svg_1" fill="#',
+      color[epochFromId].toColor(),
+      '" stroke-width="3" stroke="#000"/>',
+      '<radialGradient id="sssvg2" cx="220" cy="4154.0601" r="125" gradientTransform="matrix(0.99 0 0 8.000000e-02 0.52 -35.11)" gradientUnits="userSpaceOnUse">',
+      '<stop  offset="0.41" style="stop-color:#000000"/>',
+      '<stop  offset="1" style="stop-color:#FFFFFF;stop-opacity:0"/>',
+      '</radialGradient>',
+      '<ellipse id="svg_5" style="fill:url(#sssvg2);" cx="225.7" cy="301.1" rx="139.4" ry="7.8"/>',
+
+
+      '<radialGradient id="svg_3" cx="200" cy="440" r="149.26" fx="200" fy="326.22" gradientTransform="matrix(1 0 0 1 0 -240)" gradientUnits="userSpaceOnUse">',
+      //'<stop  offset="0.6" style="stop-color:#FFFFF0"/><stop  offset="0.67" style="stop-color:#FBFBF0"/><stop  offset="0.7" style="stop-color:#EEEEE0"/><stop  offset="0.8" style="stop-color:#979790"/>',
+      '<stop  offset="0.64" style="stop-color:#FFFFF0"/><stop  offset="0.67" style="stop-color:#FBFBEC"/><stop  offset="0.7" style="stop-color:#EEEEDF"/><stop  offset="0.73" style="stop-color:#D9D9CA"/><stop  offset="0.77" style="stop-color:#BCBCAD"/><stop  offset="0.8" style="stop-color:#979788"/><stop  offset="0.82" style="stop-color:#808071"/>',
+      '</radialGradient>',
+      '<circle id="svg_52" style="fill:url(#svg_3);" cx="200" cy="200" r="100"/>',
+      '<circle id="svg_53" fill="#FF0000" cx="200" cy="200" r="50"/>',
+      '<text transform="matrix(1 0 0 1 159.29 227)" fill="#ffffff" stroke="#000" stroke-width="1" font-family="Helvetica-Bold" font-size="75px" >',
+      numberFromId.toString(),
+      '</text>',
+      '</g>'
+      /*
+
         '<g id="ball">',
           ' <rect width="400" height="400" id="svg_1" fill="#',
           color[epochFromId].toColor(),
           '" stroke-width="3" stroke="#000"/>',
           '<ellipse fill="#444" stroke-width="0" cx="257" cy="325" id="svg_2" rx="85" ry="10" stroke="#000"/>',
-          '<ellipse fill="#fff" stroke-width="3" cx="200" cy="200" id="svg_3" rx="130" ry="130" stroke="#000"/>',
+          '<ellipse fill="#FFFDD0" stroke-width="3" cx="200" cy="200" id="svg_3" rx="130" ry="130" stroke="#000"/>',
           '<ellipse fill="',
           dotColor,
           '" stroke-width="0" cx="200" cy="200" id="svg_4" rx="69" ry="69" stroke="#000"/>',
@@ -284,7 +307,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
           '" y="227" fill="#fff" stroke="#000" stroke-width="1" font-family="Helvetica-Bold">',
           numberFromId.toString(),
           '</text>',
-        '</g>'
+        '</g>' */
       ));
 
     return render;
