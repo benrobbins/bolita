@@ -142,8 +142,15 @@ console.log("rerender",readContracts);
       }
       setYourCollectibles(collectibleUpdate);
     };
-    updateYourCollectibles();
-  }, [address, buying, transferSingleEvents]);
+    const timeoutId = setTimeout(() => {
+      updateYourCollectibles();
+    }, 500)
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+
+  }, [address, transferSingleEvents, lastWinningNumber]);
 
   console.log("yourCollectibles", yourCollectibles);
   const [yourWinners, setYourWinners] = useState([]);
