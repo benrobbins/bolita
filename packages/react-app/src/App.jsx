@@ -29,7 +29,7 @@ import externalContracts from "./contracts/external_contracts";
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
 import { Transactor, Web3ModalSetup } from "./helpers";
-import { Home, ExampleUI, Hints, Subgraph } from "./views";
+import { Home, ExampleUI, Hints, Subgraph, ViewBall } from "./views";
 import { useStaticJsonRPC } from "./hooks";
 
 const { ethers } = require("ethers");
@@ -257,7 +257,7 @@ function App(props) {
         logoutOfWeb3Modal={logoutOfWeb3Modal}
         USE_NETWORK_SELECTOR={USE_NETWORK_SELECTOR}
       />
-      <Menu style={{ textAlign: "center", marginTop: 40 }} selectedKeys={[location.pathname]} mode="horizontal">
+      {/*<Menu style={{ textAlign: "center", marginTop: 40 }} selectedKeys={[location.pathname]} mode="horizontal">
         <Menu.Item key="/">
           <Link to="/">App Home</Link>
         </Menu.Item>
@@ -276,7 +276,7 @@ function App(props) {
         <Menu.Item key="/subgraph">
           <Link to="/subgraph">Subgraph</Link>
         </Menu.Item>
-      </Menu>
+      </Menu>*/}
 
       <Switch>
         <Route exact path="/">
@@ -285,6 +285,7 @@ function App(props) {
             yourLocalBalance={yourLocalBalance}
             readContracts={readContracts}
             tx={tx}
+            targetNetwork={targetNetwork}
             writeContracts={writeContracts}
             address={address}
             mainnetProvider={mainnetProvider}
@@ -310,7 +311,7 @@ function App(props) {
             contractConfig={contractConfig}
           />
         </Route>
-        <Route path="/hints">
+      {/*<Route path="/hints">
           <Hints
             address={address}
             yourLocalBalance={yourLocalBalance}
@@ -343,7 +344,7 @@ function App(props) {
             contractConfig={contractConfig}
             chainId={1}
           />
-          {/*
+
             <Contract
               name="UNI"
               customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.UNI}
@@ -352,7 +353,7 @@ function App(props) {
               address={address}
               blockExplorer="https://etherscan.io/"
             />
-            */}
+
         </Route>
         <Route path="/subgraph">
           <Subgraph
@@ -361,7 +362,17 @@ function App(props) {
             writeContracts={writeContracts}
             mainnetProvider={mainnetProvider}
           />
-        </Route>
+        </Route>*/}
+        <Route path="/token/:id">
+
+            <ViewBall
+              readContracts={readContracts}
+              blockExplorer={blockExplorer}
+              mainnetProvider={mainnetProvider}
+              targetNetwork={targetNetwork}
+              totalSupply={5}
+            />
+          </Route>
       </Switch>
 
       <ThemeSwitch />

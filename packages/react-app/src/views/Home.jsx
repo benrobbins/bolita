@@ -16,6 +16,7 @@ function Home({
   yourLocalBalance,
   readContracts,
   tx,
+  targetNetwork,
   writeContracts,
   address,
   mainnetProvider,
@@ -23,26 +24,70 @@ function Home({
   localProvider,
   price,
  }) {
-
+console.log("rerender",readContracts);
   // you can also use hooks locally in your component of choice
   // in this case, let's keep track of 'purpose' variable from our contract
-  const currentEpoch = useContractReader(readContracts, "Ballita", "currentEpoch");
-  console.log("currentEpoch", currentEpoch);
-  const previousEpoch = useContractReader(readContracts, "Ballita", "previousEpoch");
 
-  const betPrice = useContractReader(readContracts, "Ballita", "price");
-  const topNumber = useContractReader(readContracts, "Ballita", "topNumber");
-  const charity = useContractReader(readContracts, "Ballita", "charity");
-  const charityPercent = useContractReader(readContracts, "Ballita", "charityPercent");
-  const lastWinningNumber = useContractReader(readContracts, "Ballita", "lastWinningNumber");
   const waitingForOracle = useContractReader(readContracts, "Ballita", "waitingForOracle") //untested
   const dateTime = Date.now();
   const timestamp = Math.floor(dateTime / 1000);
 
   const advanceEvents = useEventListener(readContracts, "Ballita", "AdvanceEpoch", localProvider, 1);
+  const [currentEpoch, setCurrentEpoch] = useState(1);
+  const [previousEpoch, setPreviousEpoch] = useState(0);
+  useEffect(()=>{
+    const lastAdvance = advanceEvents&&advanceEvents[advanceEvents.length - 1];
+    console.log("lastAdvance", lastAdvance)
+    const newCurrentEpoch = lastAdvance&&lastAdvance.args&&lastAdvance.args.newEpoch.toNumber();
+    const newPreviousEpoch = lastAdvance&&lastAdvance.args&&lastAdvance.args.previousEpoch.toNumber();
+    setCurrentEpoch(newCurrentEpoch);
+    setPreviousEpoch(newPreviousEpoch);
+  }, [advanceEvents]);
   //console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
+  console.log("advanceEvents", advanceEvents, currentEpoch, previousEpoch);
 
-  const currentEpochFormatted = currentEpoch&&currentEpoch.toNumber();
+  const priceEvents = useEventListener(readContracts, "Ballita", "SetPrice", localProvider, 1);
+  const [betPrice, setBetPrice] = useState(0);
+  useEffect(() => {
+    const lastPriceEvent = priceEvents&&priceEvents[priceEvents.length - 1];
+    const newPrice = lastPriceEvent&&lastPriceEvent.args&&lastPriceEvent.args.newPrice;
+    setBetPrice(newPrice);
+  }, [priceEvents]);
+
+  const topNumberEvents = useEventListener(readContracts, "Ballita", "SetTopNumber", localProvider, 1);
+  const [topNumber, setTopNumber] = useState(0);
+  useEffect(() => {
+    const lastTopNumberEvent = topNumberEvents&&topNumberEvents[topNumberEvents.length - 1];
+    const newTopNumber = lastTopNumberEvent&&lastTopNumberEvent.args&&lastTopNumberEvent.args.newTopNumber;
+    setTopNumber(newTopNumber);
+  }, [topNumberEvents]);
+
+  const charityEvents = useEventListener(readContracts, "Ballita", "SetCharity", localProvider, 1);
+  const [charity, setCharity] = useState(0);
+  useEffect(() => {
+    const lastCharityEvent = charityEvents&&charityEvents[charityEvents.length - 1];
+    const newCharity = lastCharityEvent&&lastCharityEvent.args&&lastCharityEvent.args.newCharity;
+    setCharity(newCharity);
+  }, [charityEvents]);
+
+
+  const charityPercentEvents = useEventListener(readContracts, "Ballita", "SetCharityPercent", localProvider, 1);
+  const [charityPercent, setCharityPercent] = useState(0);
+  useEffect(() => {
+    const lastCharityPercentEvent = charityPercentEvents&&charityPercentEvents[charityPercentEvents.length - 1];
+    const newCharityPercent = lastCharityPercentEvent&&lastCharityPercentEvent.args&&lastCharityPercentEvent.args.newCharityPercent;
+    setCharityPercent(newCharityPercent);
+  }, [charityPercentEvents]);
+
+  const lastWinningNumberEvents = useEventListener(readContracts, "Ballita", "SetLastWinningNumber", localProvider, 1);
+  const [lastWinningNumber, setLastWinningNumber] = useState(0);
+  useEffect(() => {
+    const lastLastWinningNumberEvent = lastWinningNumberEvents&&lastWinningNumberEvents[lastWinningNumberEvents.length - 1];
+    const newLastWinningNumber = lastLastWinningNumberEvent&&lastLastWinningNumberEvent.args&&lastLastWinningNumberEvent.args.newLastWinningNumber;
+    setLastWinningNumber(newLastWinningNumber);
+  }, [lastWinningNumberEvents]);
+  console.log("charity", charityEvents, charity);
+
   const topNumberFormatted = topNumber&&topNumber.toNumber();
   const lastWinningNumberFormatted = lastWinningNumber&&lastWinningNumber.toNumber();
 
@@ -51,43 +96,54 @@ function Home({
   const [claiming, setClaiming] = useState();
   const [betNumber, setBetNumber] = useState("1");
 
-  const nextDrawingTime = new Date(currentEpochFormatted*1000);
+  const nextDrawingTime = new Date(currentEpoch*1000);
 
-  var countdown = currentEpochFormatted - timestamp > 0 ? currentEpochFormatted - timestamp : 0;
-  var nextDrawing = countdown <= 0 ? "Now!" : nextDrawingTime;
+  const countdown = currentEpoch - timestamp > 0 ? currentEpoch - timestamp : 0;
+  const nextDrawing = countdown <= 0 ? "Now!" : nextDrawingTime;
 
+  const transferSingleEvents = useEventListener(readContracts, "Ballita", "TransferSingle", localProvider, 1);
+  console.log("transferSingleEvents", transferSingleEvents)
   const [yourCollectibles, setYourCollectibles] = useState([]);
-
   useEffect(() => {
     const updateYourCollectibles = async () => {
       const collectibleUpdate = [];
+      const uniqueIdTransfers = [...new Map(transferSingleEvents.map((e) => [e.args.id.toNumber(), e])).values()];
 
-      for (let bet = 1; bet <= topNumber; bet++) {
-        const tokenId = currentEpochFormatted*10000 + bet;
+      for (let i = 0; i <uniqueIdTransfers.length; i++) {
 
-        try {
-          const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
-          const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
-          console.log("GEtting token index", tokenId, tokenQtyFormatted);
-          if(tokenQtyFormatted) {
-            const tokenURI = await readContracts.Ballita.uri(tokenId);
-            const jsonManifestString = atob(tokenURI.substring(29))
+        if(uniqueIdTransfers[i].args.to == address){
+
+          const tokenId = uniqueIdTransfers[i].args.id.toNumber();
+          const tokenEpoch = tokenId/10000 | 0;
+
+          if(tokenEpoch == currentEpoch) {
+            console.log("tokenID", tokenId)
             try {
-              const jsonManifest = JSON.parse(jsonManifestString);
-              if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, uri: tokenURI, qty: tokenQtyFormatted, epoch: currentEpoch, bet: bet, owner: address, ...jsonManifest })
+              const tokenQty = await readContracts.Ballita.balanceOf(address, tokenId);
+              const tokenQtyFormatted = tokenQty&&tokenQty.toNumber();
+              console.log("GEtting token index", tokenId, tokenQtyFormatted);
+              if(tokenQtyFormatted) {
+                const tokenURI = await readContracts.Ballita.uri(tokenId);
+                const jsonManifestString = atob(tokenURI.substring(29))
+                console.log("jsonManifestString", jsonManifestString)
+                try {
+                  const jsonManifest = JSON.parse(jsonManifestString);
+                  if(tokenQtyFormatted) collectibleUpdate.push({id: tokenId, uri: tokenURI, qty: tokenQtyFormatted, epoch: currentEpoch, bet: 1, owner: address, ...jsonManifest })
+                } catch (e) {
+                  console.log(e);
+                }
+              }
+
             } catch (e) {
               console.log(e);
             }
           }
-
-        } catch (e) {
-          console.log(e);
         }
       }
       setYourCollectibles(collectibleUpdate);
     };
     updateYourCollectibles();
-  }, [address, buying, lastWinningNumber]);
+  }, [address, buying, transferSingleEvents]);
 
   console.log("yourCollectibles", yourCollectibles);
   const [yourWinners, setYourWinners] = useState([]);
@@ -128,7 +184,7 @@ function Home({
       setYourWinners(winnersUpdate);
     };
     updateYourWinners();
-  },[address, lastWinningNumber, claiming]);
+  },[address, claiming, lastWinningNumber]);
 
   console.log("winners", yourWinners);
 
@@ -136,23 +192,26 @@ function Home({
     <div>
       <div style={{marginTop: 32}}>
         <h1>charity address &nbsp;
-        <Address
-          address={charity}
-          ensProvider={mainnetProvider}
-          blockExplorer={blockExplorer}
-
-        />
+        {charity?
+          <Address
+            address={charity}
+            ensProvider={mainnetProvider}
+            blockExplorer={blockExplorer}
+          /> :
+          <Spin />
+        }
          &nbsp; recieves {charityPercent&&charityPercent.toNumber()}% of winnings</h1>
       </div>
       <div style={{marginTop: 24}}>
         <h2> Winning number from last round: &nbsp; {lastWinningNumberFormatted ? lastWinningNumberFormatted : <Spin />} </h2>
       </div>
       <div style={{marginTop: 16}}>
-        <h2> Next Drawing {nextDrawingTime.toString()} <br /> (in {countdown} seconds) </h2>
+        <h2> Next Drawing {nextDrawing.toString()} <br /> (in {countdown} seconds) </h2>
       </div>
       <div style={{marginTop: 16}}>
         <Space>
-        Place your bet (  1  -{topNumberFormatted})
+          Place your bet ( pick a number 1  -{topNumberFormatted})
+
           <InputNumber
             min={1}
             max={topNumberFormatted}
@@ -162,7 +221,7 @@ function Home({
           />
           <Button
             type="primary"
-            disabled={timestamp >= currentEpochFormatted}
+            disabled={timestamp >= currentEpoch}
             loading={waitingForOracle}
             onClick={async () => {
               setBuying(true);
@@ -172,17 +231,21 @@ function Home({
           >
            buy
          </Button>
+         for
+         <Balance balance={betPrice} provider={localProvider} price={price} />
+         each
         </Space>
       </div>
       <div style={{margin: "auto", marginTop: 32}}>
         <Button
           type="primary"
-          disabled={timestamp < currentEpochFormatted}
+          disabled={timestamp < currentEpoch}
           loading={pulling}
           onClick={async () => {
             setPulling(true);
             await tx(writeContracts.Ballita.advanceEpoch());
             setPulling(false);
+
           }}
         >
          pull ball
@@ -208,7 +271,12 @@ function Home({
                       </div>
                     }
                   >
-                    <a href={"https://opensea.io/assets/"+(readContracts && readContracts.YourCollectible && readContracts.YourCollectible.address)+"/"+item.id} target="_blank">
+                    <a
+                      href={`https://${targetNetwork.name == "rinkeby" ? `testnets.` : ""}opensea.io/assets/${
+                      readContracts.Ballita.address
+                      }/${id}`}
+                      target="_blank"
+                    >
                     <img src={item.image} />
                     </a>
                     <div>{item.description}</div>
@@ -247,8 +315,13 @@ function Home({
                       </div>
                     }
                   >
-                    <a href={"https://opensea.io/assets/"+(readContracts && readContracts.YourCollectible && readContracts.YourCollectible.address)+"/"+item.id} target="_blank">
-                    <img src={item.image} />
+                    <a
+                      href={`https://${targetNetwork.name == "rinkeby" ? `testnets.` : ""}opensea.io/assets/${
+                      readContracts.Ballita.address
+                      }/${item.id}`}
+                      target="_blank"
+                    >
+                      <img src={item.image} />
                     </a>
                     <div>{item.description}</div>
                   </Card>

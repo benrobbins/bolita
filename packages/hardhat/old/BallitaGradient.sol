@@ -73,6 +73,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
   mapping (uint => mapping (uint => uint)) public bets; //epoch=>number=>number of bets
   mapping (uint => Winnings) public winnings;
   mapping (uint256 => bytes3) public color;
+  mapping (uint256 => uint256) public chubbiness;
 
   constructor(string memory uri_, uint price_, uint topNumber_, address payable charity_, uint epochLength_, uint charityPercent_, uint64 subscriptionId_, string memory name_) ERC1155(uri_) VRFConsumerBaseV2(vrfCoordinator){
     price = price_;
@@ -199,10 +200,9 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
     _mint(msg.sender, id, amount, msg.data);
     anyLiveBets = true;
 
-    if(color[currentEpoch] == 0){
-      bytes32 predictableRandom = keccak256(abi.encodePacked( currentEpoch ));
-      color[currentEpoch] = bytes2(predictableRandom[0]) | ( bytes2(predictableRandom[1]) >> 8 ) | ( bytes3(predictableRandom[2]) >> 16 );
-    }
+    bytes32 predictableRandom = keccak256(abi.encodePacked( id ));
+    color[id] = bytes2(predictableRandom[0]) | ( bytes2(predictableRandom[1]) >> 8 ) | ( bytes3(predictableRandom[2]) >> 16 );
+    chubbiness[id] = 35+((55*uint256(uint8(predictableRandom[3])))/255);
 
     return id;
   }
@@ -218,7 +218,7 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
       console.log("token info", id, epochFromId, numberFromId);
       require(bets[epochFromId][numberFromId] > 0, "not exist");
       string memory ballName = string(abi.encodePacked('Ball #',id.toString()));
-      string memory description = string(abi.encodePacked('Background color #',color[epochFromId].toColor(),''));
+      string memory description = string(abi.encodePacked('This Ball is the color #',color[id].toColor(),' with a chubbiness of ',uint2str(chubbiness[id]),'!!!'));
       string memory image = Base64.encode(bytes(generateSVGofTokenById(id)));
 
       return
@@ -234,10 +234,10 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
                               description,
                               '", "external_url":"https://bolita_rinkeby.0xwildhare.com/token/',
                               id.toString(),
-                              '", "attributes": [{"trait_type": "background_color", "value": "#',
-                              color[epochFromId].toColor(),
-                              '"},{"trait_type": "number", "value": ',
-                              uint2str(numberFromId),
+                              '", "attributes": [{"trait_type": "color", "value": "#',
+                              color[id].toColor(),
+                              '"},{"trait_type": "chubbiness", "value": ',
+                              uint2str(chubbiness[id]),
                               '}], "image": "',
                               'data:image/svg+xml;base64,',
                               image,
@@ -263,28 +263,40 @@ contract Ballita is ERC1155, Ownable, VRFConsumerBaseV2 {
 
   // Visibility is `public` to enable it being called by other contracts for composition.
   function renderTokenById(uint256 id) public view returns (string memory) {
-    (uint epochFromId, uint numberFromId) = parseId(id);
-    uint x = 162;
-    if(numberFromId < 10) x = 182;
-    if(numberFromId > 99) x = 142;
-    string memory dotColor = "red";
-    if(winnings[epochFromId].winningNumber == numberFromId) dotColor = "green";
+    (, uint numberFromId) = parseId(id);
     string memory render = string(abi.encodePacked(
-        '<g id="ball">',
-          ' <rect width="400" height="400" id="svg_1" fill="#',
-          color[epochFromId].toColor(),
-          '" stroke-width="3" stroke="#000"/>',
-          '<ellipse fill="#444" stroke-width="0" cx="257" cy="325" id="svg_2" rx="85" ry="10" stroke="#000"/>',
-          '<ellipse fill="#fff" stroke-width="3" cx="200" cy="200" id="svg_3" rx="130" ry="130" stroke="#000"/>',
-          '<ellipse fill="',
-          dotColor,
-          '" stroke-width="0" cx="200" cy="200" id="svg_4" rx="69" ry="69" stroke="#000"/>',
-          '<text font-size="75" font-weight="bold" x="',
-          x.toString(),
-          '" y="227" fill="#fff" stroke="#000" stroke-width="1" font-family="Helvetica-Bold">',
-          numberFromId.toString(),
-          '</text>',
-        '</g>'
+        '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"',
+        'viewBox="0 0 400 400" style="enable-background:new 0 0 400 400;" xml:space="preserve">',
+        '<style type="text/css">',
+          '.st0{fill:#F0DB28;}',
+          '.st1{fill:url(#svg_5_00000152259419667398007420000005293758097252343191_);}',
+          '.st2{fill:url(#svg_5-2_00000123435986000044835960000017573465654273068965_);}',
+              '<!-- dot -->',
+          '.st3{fill:#ff0000;}',
+              '<!-- number -->',
+          '.st4{fill:#ffffff;}',
+          '.st5{font-family:"Helvetica-Bold";}',
+          '.st6{font-size:75px;}',
+        '</style>',
+        '<rect class="st0" width="400" height="400"/>',
+        '<radialGradient id="svg_5_00000142170131345475584460000014177333728368656045_" cx="220" cy="4154.0601" r="125" gradientTransform="matrix(0.99 0 0 8.000000e-02 0.52 -35.11)" gradientUnits="userSpaceOnUse">',
+          '<stop  offset="0.41" style="stop-color:#000000"/>',
+          '<stop  offset="1" style="stop-color:#FFFFFF;stop-opacity:0"/>',
+        '</radialGradient>',
+        '<ellipse id="svg_5" style="fill:url(#svg_5_00000142170131345475584460000014177333728368656045_);" cx="225.7" cy="301.1" rx="139.4" ry="7.8"/>',
+        '<radialGradient id="svg_5-2_00000062892436230641641650000007327372868173247657_" cx="200" cy="440" r="149.26" fx="200" fy="326.22" gradientTransform="matrix(1 0 0 1 0 -240)" gradientUnits="userSpaceOnUse">',
+          '<stop  offset="0.64" style="stop-color:#FFFFFF"/>',
+          '<stop  offset="0.67" style="stop-color:#FBFBFB"/>',
+          '<stop  offset="0.7" style="stop-color:#EEEEEE"/>',
+          '<stop  offset="0.73" style="stop-color:#D9D9D9"/>',
+          '<stop  offset="0.77" style="stop-color:#BCBCBC"/>',
+          '<stop  offset="0.8" style="stop-color:#979797"/>',
+          '<stop  offset="0.82" style="stop-color:#808080"/>',
+        '</radialGradient>',
+        '<circle id="svg_5-2" style="fill:url(#svg_5-2_00000062892436230641641650000007327372868173247657_);" cx="200" cy="200" r="100"/>',
+        '<circle id="svg_5-3" class="st3" cx="200" cy="200" r="50"/>',
+        '<text transform="matrix(1 0 0 1 159.29 227)" class="st4 st5 st6">69</text>',
+        '</svg>'
       ));
 
     return render;

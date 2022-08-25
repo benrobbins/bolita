@@ -798,6 +798,11 @@ const BallitaABI = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "topNumber_",
+        "type": "uint256"
+      },
+      {
         "internalType": "address payable",
         "name": "charity_",
         "type": "address"
@@ -816,6 +821,11 @@ const BallitaABI = [
         "internalType": "uint64",
         "name": "subscriptionId_",
         "type": "uint64"
+      },
+      {
+        "internalType": "string",
+        "name": "name_",
+        "type": "string"
       }
     ],
     "stateMutability": "nonpayable",
@@ -918,7 +928,7 @@ const BallitaABI = [
       {
         "indexed": false,
         "internalType": "address",
-        "name": "charity",
+        "name": "newCharity",
         "type": "address"
       }
     ],
@@ -937,7 +947,7 @@ const BallitaABI = [
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "percent",
+        "name": "newCharityPercent",
         "type": "uint256"
       }
     ],
@@ -956,11 +966,24 @@ const BallitaABI = [
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "lengthInSeconds",
+        "name": "newEpochLength",
         "type": "uint256"
       }
     ],
     "name": "SetEpochLength",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLastWinningNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetLastWinningNumber",
     "type": "event"
   },
   {
@@ -980,6 +1003,25 @@ const BallitaABI = [
       }
     ],
     "name": "SetPrice",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newTopNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetTopNumber",
     "type": "event"
   },
   {
@@ -1214,25 +1256,6 @@ const BallitaABI = [
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "chubbiness",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "_epoch",
         "type": "uint256"
       },
@@ -1350,6 +1373,19 @@ const BallitaABI = [
   },
   {
     "inputs": [],
+    "name": "name",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "owner",
     "outputs": [
       {
@@ -1382,7 +1418,7 @@ const BallitaABI = [
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1627,6 +1663,19 @@ const BallitaABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "_newTopNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "setTopNumber",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes4",
         "name": "interfaceId",
         "type": "bytes4"
@@ -1638,25 +1687,6 @@ const BallitaABI = [
         "internalType": "bool",
         "name": "",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      }
-    ],
-    "name": "tokenURI",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -1705,7 +1735,7 @@ const BallitaABI = [
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "id",
         "type": "uint256"
       }
     ],
@@ -1780,7 +1810,7 @@ module.exports = {
   4: { //rinkeby
     contracts: {
       Ballita: {
-        address: "0xf3615D2e84585cf20757010E2a1cD99ae4B5E3cd", // deployed by 0xWildhare 23/08/2022
+        address: "0x30938d55B18C1273FD7f5901a2B33127c01cB371", // deployed by 0xWildhare 24/08/2022
         abi: BallitaABI,
       },
     },
