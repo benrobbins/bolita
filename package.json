@@ -67,7 +67,9 @@
       "**/hardhat-ts/**"
     ]
   },
-  "dependencies": {},
+  "dependencies": {
+    "@ant-design/icons": "^4.7.0"
+  },
   "devDependencies": {
     "husky": "^7.0.2"
   }
