@@ -43,8 +43,8 @@ console.log("rerender",readContracts);
     setCurrentEpoch(newCurrentEpoch);
     setPreviousEpoch(newPreviousEpoch);
   }, [advanceEvents]);
-  //console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
-  //console.log("advanceEvents", advanceEvents, currentEpoch, previousEpoch);
+  console.log("📟 advance epoch events:", advanceEvents, advanceEvents.length);
+  console.log("advanceEvents", advanceEvents, currentEpoch, previousEpoch);
 
   const priceEvents = useEventListener(readContracts, "Ballita", "SetPrice", localProvider, 1);
   const [betPrice, setBetPrice] = useState(0);

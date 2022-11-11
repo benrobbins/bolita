@@ -10,12 +10,12 @@ git clone https://github.com/0xWildhare/ballita.git
 > install and start your 📱 frontend:
 
 ```bash
-cd ballita
+cd bolita
 yarn install
 yarn start
 ```
 
-🔏 The frontend will interact with the existing smart contract on the `Rinkeby testnet`
+🔏 The frontend will interact with the existing smart contract on the `goerli testnet`
 
 📝 Edit your frontend `App.jsx` in `packages/react-app/src`
 
